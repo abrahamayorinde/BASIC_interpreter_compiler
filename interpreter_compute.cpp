@@ -765,3 +765,4 @@ string toSymbol(string word)
     }
     return "";
 }
+
