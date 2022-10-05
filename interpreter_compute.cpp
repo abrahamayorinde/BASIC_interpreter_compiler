@@ -1,3 +1,4 @@
+
 #include <iostream>
 #include <string>
 
@@ -6,6 +7,7 @@ using namespace std;
 
 bool isdigit(char digit);
 bool nearEnd(int place, int end);
+string toSymbol(string word);
 
 struct Token{
     string Type;
@@ -13,6 +15,7 @@ struct Token{
 };
 
 struct Node{
+public:
     Token myNodeToken;
     Node* left;
     Node* right;
@@ -23,6 +26,16 @@ struct Node{
         left = NULL;
         right = NULL;
     }
+};
+
+class binaryNode: public Node{
+public:
+    Node* left;
+    Node* right;
+};
+
+class unaryNode: public Node{
+public:
 };
 
 class Lexer{
@@ -153,7 +166,6 @@ public:
         else
         {
             return thisToken;
-        
         }
     }
 };
@@ -164,14 +176,14 @@ public:
     /*"""term : factor ((MUL | DIV) factor)*"""*/
     Lexer thislexer;
     Token currentToken;
-    Node AST;
+    Node astHead;
     Node* astPointer;
     string cursorTokenCharType;
     int i;
 
     Parser()
     {
-        astPointer = &AST;
+        //astPointer = new Node;
     }
     void getLexer(Lexer lexer)
     {
@@ -207,27 +219,45 @@ public:
     
     void traverse(Node* astTreePointer)
     {
-        cout<<"TRAVERSE - Type: "<<astTreePointer->myNodeToken.Type<<endl;
-        cout<<"TRAVERSE - Value: "<<astTreePointer->myNodeToken.Value<<endl;
         if (astTreePointer->left != NULL)
         {
             traverse(astTreePointer->left);
         }
+        
+        cout<<"TRAVERSE - Type: "<<astTreePointer->myNodeToken.Type<<endl;
+        cout<<"TRAVERSE - Value: "<<astTreePointer->myNodeToken.Value<<endl;
+        
         if (astTreePointer->right != NULL)
         {
             traverse(astTreePointer->right);
         }
     }
 
-    Node* factor()
+    Node* factor( )
     {
-        int result;
+        Node* astNode;
         Token current = currentToken;
-        
-        Node* astNode = new Node;
+        bool change = false;
 
         cout<<"PARSER: Factor Token Type: "<<currentToken.Type<<endl;
-
+        if( currentToken.Type == "ADD")
+        {
+            astNode = new Node;
+            eat("ADD");
+            astNode->myNodeToken.Value = current.Value;
+            astNode->myNodeToken.Type = current.Type;
+            astNode->left = factor();
+            astNode->right = NULL;
+        }
+        if( currentToken.Type == "SUBTRACT")
+        {
+            astNode = new Node;
+            eat("SUBTRACT");
+            astNode->myNodeToken.Value = current.Value;
+            astNode->myNodeToken.Type = current.Type;
+            astNode->left = factor();
+            astNode->right = NULL;
+        }
         if( currentToken.Type == "INTEGER")
         {
             //
@@ -236,8 +266,9 @@ public:
             cout<<"PARSER: Token - Value: "<<currentToken.Value<<endl;
             i++;
             //
+            astNode = new Node;
             astNode->myNodeToken.Value = currentToken.Value;
-            astNode->myNodeToken.Type = "INTEGER";
+            astNode->myNodeToken.Type = currentToken.Type;
             astNode->left = NULL;
             astNode->right = NULL;
             eat("INTEGER");
@@ -255,10 +286,7 @@ public:
             i++;
             //
             eat("LPARENTH");
-            //astNode->myNodeToken.Type = "LPARENTH";
-            astNode->left = astNode;
-            astNode->right = expression();
-            astNode->myNodeToken.Type = currentToken.Type;
+            astNode = expression();
             eat("RPARENTH");
             return astNode;
         }
@@ -266,25 +294,20 @@ public:
         return astNode;
     }
     
-    Node* term()
+    Node* term( )
     {
-        Node* astNode = new Node;// factor();
-        Node* helpNode = new Node;
+        Node* leftNode;
+        Node* newNode;
+        bool change = false;
         Token current = currentToken;
         
-        //astNode->myNodeToken.Type = "NONE";
-        //astNode->Value = 0;
-        astNode->left = NULL;
-        astNode->right = NULL;
-        helpNode->left = NULL;
-        helpNode->right = NULL;
-        
-        astNode = factor();
+        leftNode = factor();
         
         cout<<"PARSER: Term Token Type: "<<currentToken.Type<<endl;
 
         while( (currentToken.Type == "MULTIPLY") || (currentToken.Type == "DIVIDE") )
         {
+            change = true;
             if(currentToken.Type == "MULTIPLY")
             {
                 //
@@ -293,11 +316,12 @@ public:
                 cout<<"PARSER: Token - Value: "<<currentToken.Value<<endl;
                 i++;
                 //
+                newNode = new Node;
+                newNode->myNodeToken.Type = "MULTIPLY";
+                newNode->left = leftNode;
                 eat("MULTIPLY");
-                helpNode->left = astNode;
-                helpNode->myNodeToken.Type = "MULTIPLY";
-                helpNode->right = factor();
-                return helpNode;
+                newNode->right = factor();
+                leftNode = newNode;
             }
             if(currentToken.Type == "DIVIDE")
             {
@@ -307,36 +331,34 @@ public:
                 cout<<"PARSER: Token - Value: "<<currentToken.Value<<endl;
                 i++;
                 //
+                newNode = new Node;
+                newNode->myNodeToken.Type = "DIVIDE";
+                newNode->left = leftNode;
                 eat("DIVIDE");
-                helpNode->left = astNode;
-                helpNode->myNodeToken.Type = "DIVIDE";
-                helpNode->right = factor();
-                return helpNode;
+                newNode->right = factor();
+                leftNode = newNode;
             }
-            cout<<"Am I stuck here?"<<endl;
         }
-        cout<<"PARSER, term, return: "<<astNode->myNodeToken.Type<<endl;
-        return astNode;
+        return leftNode;
     }
     
+    /*
+     pre: currentToken.Type exists
+     post:returns the root node of the abstract syntax token tree
+     */
     Node* expression()
     {
-        Node* astNode = new Node;
-        //Node* astPointer = new Node;
+        Node* leftNode;
+        Node* newNode;// = new Node;
+        bool change = false;
         
-        astNode->myNodeToken.Type = "";
-        astNode->myNodeToken.Value = 0;
-        astNode->left = NULL;
-        astNode->right = NULL;
-        astPointer->left = NULL;
-        astPointer->right = NULL;
-        
-        astNode = term();
-        
+        leftNode = term();
+
         cout<<"PARSER: Expression Token Type: "<<currentToken.Type<<endl;
 
         while ((currentToken.Type == "ADD") || (currentToken.Type == "SUBTRACT"))
         {
+            change = true;
             if(currentToken.Type == "ADD")
             {
                 //
@@ -345,13 +367,13 @@ public:
                 cout<<"PARSER: Token - Value: "<<currentToken.Value<<endl;
                 i++;
                 //
-
-                astPointer->left = astNode;
-                astPointer->myNodeToken.Type = "ADD";
+                newNode = new Node;
+                newNode->left = leftNode;
+                newNode->myNodeToken.Type = "ADD";
                 eat("ADD");
-                astPointer->right = term();
-                //AST = astPointer;
-                return astPointer;
+                newNode->right = term();
+                leftNode = newNode;
+
             }
             if(currentToken.Type == "SUBTRACT")
             {
@@ -361,22 +383,126 @@ public:
                 cout<<"PARSER: Token - Value: "<<currentToken.Value<<endl;
                 i++;
                 //
-                
-                astPointer->left = astNode;
-                astPointer->myNodeToken.Type = "SUBTRACT";
-
-                //
+                newNode = new Node;
+                newNode->left = leftNode;
+                newNode->myNodeToken.Type = "SUBTRACT";
                 eat("SUBTRACT");
-                astPointer->right = term();
-                //AST = astPointer;
-                return astPointer;
+                newNode->right = term();
+                leftNode = newNode;
             }
         }
         
-        //AST = astPointer;
-        return astPointer;
+        return leftNode;
     }
 };
+class Visitor
+{
+public:
+    /*"""term : factor ((MUL | DIV) factor)*"""*/
+    int result;
+    string rpn;
+    string lisp;
+    
+    int visit(Node* asTree)
+    {
+        if(asTree->myNodeToken.Type == "ADD")
+        {
+            result = visit(asTree->left) + visit(asTree->right);
+        }
+        if(asTree->myNodeToken.Type == "SUBTRACT")
+        {
+            result = visit(asTree->left) - visit(asTree->right);
+        }
+        if(asTree->myNodeToken.Type == "MULTIPLY")
+        {
+            result = visit(asTree->left) * visit(asTree->right);
+        }
+        if(asTree->myNodeToken.Type == "DIVIDE")
+        {
+            result = visit(asTree->left) / visit(asTree->right);
+        }
+        if(asTree->myNodeToken.Type == "INTEGER")
+        {
+            return asTree->myNodeToken.Value;
+        }
+        return result;
+    }
+    
+    void rpnTranslator(Node* asTree)
+    {
+        if(asTree->left!=NULL)
+        {
+            if(asTree->left->myNodeToken.Type == "INTEGER")
+            {
+                rpn.append(to_string(asTree->left->myNodeToken.Value));
+            }
+            else
+            {
+                rpnTranslator(asTree->left);
+            }
+        }
+ 
+        if(asTree->right!=NULL)
+        {
+            if(asTree->right->myNodeToken.Type == "INTEGER")
+            {
+                rpn.append(to_string(asTree->right->myNodeToken.Value));
+            }
+            else
+            {
+                //The type of token at this particular node is, by inspection, an operator
+                rpnTranslator(asTree->right);
+            }
+        }
+ 
+        if((asTree != NULL) && (asTree->myNodeToken.Type != "INTEGER"))
+        {
+            rpn.append(toSymbol(asTree->myNodeToken.Type));
+        }
+    }
+    
+    void lispTranslator(Node* asTree)
+    {
+        lisp.append("(");
+        lisp.append(toSymbol(asTree->myNodeToken.Type));
+        
+        if(asTree->left!=NULL)
+        {
+            if(asTree->left->myNodeToken.Type == "INTEGER")
+            {
+                lisp.append(to_string(asTree->left->myNodeToken.Value));
+            }
+            else
+            {
+                lispTranslator(asTree->left);
+            }
+        }
+        
+        if(asTree->right!=NULL)
+        {
+            if(asTree->right->myNodeToken.Type == "INTEGER")
+            {
+                lisp.append(to_string(asTree->right->myNodeToken.Value));
+            }
+            else
+            {
+                lispTranslator(asTree->right);
+            }
+        }
+        lisp.append(")");
+    }
+    
+    void printrpn()
+    {
+        cout<<rpn<<endl;
+    }
+    
+    void printlisp()
+    {
+        cout<<lisp<<endl;
+    }
+};
+
 
 class Interpreter
 {
@@ -420,7 +546,7 @@ public:
         int result;
         Node currentNode;
         Token current = currentToken;
-        
+            
         if( currentToken.Type == "INTEGER")
         {
             eat("INTEGER");
@@ -456,7 +582,6 @@ public:
                 result = result / factor();
             }
         }
-        
         return result;
     }
     
@@ -485,15 +610,20 @@ int main()
 {
     string prompt = "Enter an expression to be evalauted:\n";
     string answer;
-    //Token foundToken;
-    //Token currentToken;
     Lexer thisLexer;
     Lexer thisLexer2;
     
     Interpreter interpreter;
     Parser parser;
-    
+    Visitor theVisitor;
     Node* testNode;
+    /*
+    Node* node1 = new Node;
+    Node* node2 = new Node;
+    Node* node3 = new Node;
+    Node* node4 = new Node;
+    Node* node5 = new Node;
+    */
     
     cout<<prompt;
     
@@ -514,16 +644,55 @@ int main()
     
     testNode =  parser.expression();
     
+    parser.traverse(testNode);
+    
+    
     //parser.traverse(testNode);
-    
-    //cout<<"Type of the test node: "<<testNode->myNodeToken.Type<<endl;
-    //cout<<"Value of the test node: "<<testNode->myNodeToken.Value<<endl;
-    
-    //cout<<"Type of left node of the test node: "<<testNode->left->myNodeToken.Type<<endl;
-    //cout<<"Value of left node of the test node: "<<testNode->left->myNodeToken.Value<<endl;
 
-    //cout<<"Type of right node of the test node: "<<testNode->right->myNodeToken.Type<<endl;
-    //cout<<"Value of right node of the test node: "<<testNode->right->myNodeToken.Value<<endl;
+    cout<<"Here is the result: "<<theVisitor.visit(testNode)<<endl;
+    
+    theVisitor.rpnTranslator(testNode);
+    
+    theVisitor.lispTranslator(testNode);
+
+    
+    theVisitor.printrpn();
+    
+    theVisitor.printlisp();
+    //cout<<endl;
+    //theVisitor.lispTranslator(testNode);
+
+    //parser.traverse(testNode);
+
+    /*
+    node1->myNodeToken.Type = "INTEGER";
+    node1->myNodeToken.Value = 2;
+    node1->left = NULL;
+    node1->right = NULL;
+    
+    node2->myNodeToken.Type = "*";
+    node2->myNodeToken.Value = 0;
+    node2->left = node1;
+    node2->right = node3;
+
+    node3->myNodeToken.Type = "INTEGER";
+    node3->myNodeToken.Value = 7;
+    node3->left = NULL;
+    node3->right = NULL;
+    
+    node4->myNodeToken.Type = "+";
+    node4->myNodeToken.Value = 0;
+    node4->left = node2;
+    node4->right = node5;
+    
+    node5->myNodeToken.Type = "INTEGER";
+    node5->myNodeToken.Value = 3;
+    node5->left = NULL;
+    node5->right = NULL;
+    
+    parser.traverse(node4);
+    */
+
      
     return 0;
 }
@@ -548,5 +717,26 @@ bool nearEnd(int place, int end)
     {
         return false;
     }
+}
+
+string toSymbol(string word)
+{
+    if(word == "ADD")
+    {
+        return "+";
+    }
+    if(word == "SUBTRACT")
+    {
+        return "-";
+    }
+    if(word == "DIVIDE")
+    {
+        return "/";
+    }
+    if(word == "MULTIPLY")
+    {
+        return "*";
+    }
+    return "";
 }
 
