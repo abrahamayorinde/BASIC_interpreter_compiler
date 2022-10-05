@@ -19,12 +19,18 @@ public:
     Token myNodeToken;
     Node* left;
     Node* right;
+    Node* child;
     Node()
     {
         myNodeToken.Type = "";
         myNodeToken.Value = 0;
         left = NULL;
         right = NULL;
+        child = NULL;
+    }
+    void addNode(Node* aNode, string nodeType)
+    {
+        
     }
 };
 
@@ -32,10 +38,18 @@ class binaryNode: public Node{
 public:
     Node* left;
     Node* right;
+    void addNode(Node* aNode, string nodeType)
+    {
+        
+    }
 };
 
 class unaryNode: public Node{
 public:
+    void addNode(Node* aNode, string nodeType)
+    {
+        
+    }
 };
 
 class Lexer{
@@ -99,6 +113,7 @@ public:
                         thisToken.Type = "INTEGER";
                         thisToken.Value = stoi(literalValue);
                         cout<<"getToken: value at end: "<<thisToken.Value<<endl;
+                        place++;
                         goto labelout;
                     }
                     thisToken.Value = stoi(literalValue);
@@ -152,15 +167,6 @@ public:
                 goto labelout;
             }
             labelout:
-            if(place == end)
-            {
-                cout<<"I've reached the end without knowing why!!!"<<endl;
-            }
-            else
-            {
-                cout<<"getToken: without issue count: "<<tokencount<<endl;
-                cout<<endl;
-            }
             return thisToken;
         }
         else
@@ -219,44 +225,55 @@ public:
     
     void traverse(Node* astTreePointer)
     {
-        if (astTreePointer->left != NULL)
+        if((astTreePointer->myNodeToken.Type == "UNARY +") || (astTreePointer->myNodeToken.Type == "UNARY -"))
         {
-            traverse(astTreePointer->left);
+            cout<<"TRAVERSE - Type: "<<astTreePointer->myNodeToken.Type<<endl;
+            cout<<"TRAVERSE - Value: "<<astTreePointer->myNodeToken.Value<<endl;
+            traverse(astTreePointer->child);
         }
-        
-        cout<<"TRAVERSE - Type: "<<astTreePointer->myNodeToken.Type<<endl;
-        cout<<"TRAVERSE - Value: "<<astTreePointer->myNodeToken.Value<<endl;
-        
-        if (astTreePointer->right != NULL)
+        else
         {
-            traverse(astTreePointer->right);
+            if (astTreePointer->left != NULL)
+            {
+                traverse(astTreePointer->left);
+            }
+         
+            cout<<"TRAVERSE - Type: "<<astTreePointer->myNodeToken.Type<<endl;
+            cout<<"TRAVERSE - Value: "<<astTreePointer->myNodeToken.Value<<endl;
+         
+            if (astTreePointer->right != NULL)
+            {
+                traverse(astTreePointer->right);
+            }
         }
     }
 
     Node* factor( )
     {
         Node* astNode;
+        Node* newNode;
+        
         Token current = currentToken;
         bool change = false;
 
         cout<<"PARSER: Factor Token Type: "<<currentToken.Type<<endl;
         if( currentToken.Type == "ADD")
         {
-            astNode = new Node;
+            newNode = new unaryNode;
             eat("ADD");
-            astNode->myNodeToken.Value = current.Value;
-            astNode->myNodeToken.Type = current.Type;
-            astNode->left = factor();
-            astNode->right = NULL;
+            newNode->myNodeToken.Value = 0;
+            newNode->myNodeToken.Type = "UNARY +";
+            newNode->child = factor();
+            astNode = newNode;
         }
         if( currentToken.Type == "SUBTRACT")
         {
-            astNode = new Node;
+            newNode = new unaryNode;
             eat("SUBTRACT");
-            astNode->myNodeToken.Value = current.Value;
-            astNode->myNodeToken.Type = current.Type;
-            astNode->left = factor();
-            astNode->right = NULL;
+            newNode->myNodeToken.Value = 0;
+            newNode->myNodeToken.Type = "UNARY -";
+            newNode->child = factor();
+            astNode = newNode;
         }
         if( currentToken.Type == "INTEGER")
         {
@@ -405,6 +422,15 @@ public:
     
     int visit(Node* asTree)
     {
+        
+        if(asTree->myNodeToken.Type == "UNARY +")
+        {
+            result = visit(asTree->child);
+        }
+        if(asTree->myNodeToken.Type == "UNARY -")
+        {
+            result = -visit(asTree->child);
+        }
         if(asTree->myNodeToken.Type == "ADD")
         {
             result = visit(asTree->left) + visit(asTree->right);
