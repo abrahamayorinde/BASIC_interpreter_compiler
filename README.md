@@ -34,7 +34,10 @@ Fix the error where the tokenizer loses its place when processing the a string l
 
 Removed some debug code in from the 'getToken' function of the 'Lexer' class.
 
+#Commit 4
+Fixed the issue with the function 'factor' in Parser that returned the wrong node and as a result some branches of the tree were orphaned.
 
+ 
 
 
 

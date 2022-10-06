@@ -20,6 +20,7 @@ public:
     Node* left;
     Node* right;
     Node* child;
+    
     Node()
     {
         myNodeToken.Type = "";
@@ -36,8 +37,6 @@ public:
 
 class binaryNode: public Node{
 public:
-    Node* left;
-    Node* right;
     void addNode(Node* aNode, string nodeType)
     {
         
@@ -265,6 +264,7 @@ public:
             newNode->myNodeToken.Type = "UNARY +";
             newNode->child = factor();
             astNode = newNode;
+            return newNode;
         }
         if( currentToken.Type == "SUBTRACT")
         {
@@ -274,6 +274,7 @@ public:
             newNode->myNodeToken.Type = "UNARY -";
             newNode->child = factor();
             astNode = newNode;
+            return newNode;
         }
         if( currentToken.Type == "INTEGER")
         {
@@ -366,7 +367,7 @@ public:
     Node* expression()
     {
         Node* leftNode;
-        Node* newNode;// = new Node;
+        Node* newNode;
         bool change = false;
         
         leftNode = term();
@@ -765,4 +766,5 @@ string toSymbol(string word)
     }
     return "";
 }
+
 
