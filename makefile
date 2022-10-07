@@ -1,0 +1,1 @@
+clang++ interpreter_compute.cpp symbol_table.cpp Node.cpp -o BASIC_interpreter
