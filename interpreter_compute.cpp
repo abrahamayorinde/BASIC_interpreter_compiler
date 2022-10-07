@@ -1,7 +1,13 @@
 
 #include <iostream>
 #include <string>
+#include <fstream>
+#include <iostream>
+#include <sstream>
+#include <list>
 
+#include "Node.h"
+#include "symbol_table.h"
 //"MULTIPLY", "DIVIDE", "ADD", "SUBTRACT", "LPARENTH", "RPARENTH",
 using namespace std;
 
@@ -9,47 +15,7 @@ bool isdigit(char digit);
 bool nearEnd(int place, int end);
 string toSymbol(string word);
 
-struct Token{
-    string Type;
-    int Value;
-};
-
-struct Node{
-public:
-    Token myNodeToken;
-    Node* left;
-    Node* right;
-    Node* child;
-    
-    Node()
-    {
-        myNodeToken.Type = "";
-        myNodeToken.Value = 0;
-        left = NULL;
-        right = NULL;
-        child = NULL;
-    }
-    void addNode(Node* aNode, string nodeType)
-    {
-        
-    }
-};
-
-class binaryNode: public Node{
-public:
-    void addNode(Node* aNode, string nodeType)
-    {
-        
-    }
-};
-
-class unaryNode: public Node{
-public:
-    void addNode(Node* aNode, string nodeType)
-    {
-        
-    }
-};
+SymbolTable mySymbolTable;
 
 class Lexer{
 public:
@@ -58,6 +24,8 @@ public:
     int end;
     Token thisToken;
     int tokencount;
+    string program;
+    SymbolTable* aSymbolTable;
     
     void getInput(string text)
     {
@@ -66,7 +34,19 @@ public:
         end = inputText.length();
         tokencount = 0;
     }
+    /*
+    void getInputFile(const char * filename)
+    {
+        std::ifstream t(filename);
+        std::stringstream buffer;
+        program << t.rdbuf();
+    }
+    */
     
+    Lexer (SymbolTable* thisSymbolTable)
+    {
+        aSymbolTable = thisSymbolTable;
+    }
     char currentSymbol()
     {
         if(place<end)
@@ -123,6 +103,33 @@ public:
                 cout<<"getToken: value before end: "<<thisToken.Value<<endl;
                 goto labelout;
             }
+            if( (isalpha(inputText.at(place)) or (inputText.at(place) == '_')) and (place<end) )
+            {
+                literalValue.append(1,inputText.at(place));
+                place++;
+                thisToken.Value = 0;
+                while((isdigit(inputText.at(place)) or isalpha(inputText.at(place))) and (place<end) )
+                {
+                    literalValue.append(1,inputText.at(place));
+                    place++;
+                }
+                if(literalValue == "BEGIN")
+                {
+                    thisToken.Type = "BEGIN";
+                }
+                else if(literalValue == "END")
+                {
+                    thisToken.Type = "END";
+                }
+                else
+                {
+                    thisToken.Type = "VAR"+literalValue;
+                    //thisToken.Type = tolower(thisToken.Type);
+                    aSymbolTable->insert(thisToken.Type, "Global", "variable", 0);
+                }
+                cout<<"getToken: value before end: "<<thisToken.Value<<endl;
+                goto labelout;
+            }
             if(inputText.at(place) == '+')
             {
                 cout<<"getToken: "<<inputText.at(place)  <<endl;
@@ -165,6 +172,51 @@ public:
                 place++;
                 goto labelout;
             }
+            if(inputText.at(place) == '.')
+            {
+                cout<<"getToken: "<<inputText.at(place)  <<endl;
+                thisToken.Type = "DOT";
+                place++;
+                goto labelout;
+            }
+            if(inputText.at(place) == ';')
+            {
+                cout<<"getToken: "<<inputText.at(place)  <<endl;
+                thisToken.Type = "SEMI";
+                place++;
+                goto labelout;
+            }
+            if(inputText.substr(place,2) == ":=")
+            {
+                cout<<"Semi getToken: "<<inputText.substr(place,2)  <<endl;
+                thisToken.Type = "ASSIGN";
+                place+=2;
+                goto labelout;
+            }
+            if(inputText.substr(place,2) == "==")
+            {
+                thisToken.Type = "EQUALITY";
+                place+=2;
+                goto labelout;
+            }
+            if(inputText.substr(place,2) == "<=")
+            {
+                thisToken.Type = "LESSTHANEQ";
+                place+=2;
+                goto labelout;
+            }
+            if(inputText.substr(place,2) == ">=")
+            {
+                thisToken.Type = "GREATERTHANEQ";
+                place+=2;
+                goto labelout;
+            }
+            if(inputText.substr(place,2) == "!=")
+            {
+                thisToken.Type = "NEQ";
+                place+=2;
+                goto labelout;
+            }
             labelout:
             return thisToken;
         }
@@ -179,46 +231,52 @@ class Parser
 {
 public:
     /*"""term : factor ((MUL | DIV) factor)*"""*/
-    Lexer thislexer;
+
+
+    Lexer* thislexer;
     Token currentToken;
     Node astHead;
     Node* astPointer;
     string cursorTokenCharType;
     int i;
 
-    Parser()
-    {
-        //astPointer = new Node;
-    }
-    void getLexer(Lexer lexer)
-    {
-        thislexer = lexer;
-        i=0;
-    }
+    Parser(Lexer* lexer):thislexer(lexer)
+    {}
+    
+    //Parser(Lexer lexer)
+    //{
+    //    //astPointer = new Node;
+    //    thislexer = lexer;
+    //   i = 0;
+    //}
+    
+    //void getLexer(Lexer lexer)
+    //{
+    //    thislexer = lexer;
+    //    i=0;
+    //}
      
     void startLexer()
     {
-        currentToken = thislexer.getToken();
+        currentToken = thislexer->getToken();
         cursorTokenCharType = getcursorSymbol();
     }
     
     char getcursorSymbol()
     {
-        return thislexer.currentSymbol();
+        return thislexer->currentSymbol();
     }
     
     void eat(string tokenType)
     {
-        if(currentToken.Type == tokenType)
+        if((currentToken.Type == tokenType) || (currentToken.Type.substr(0,3) == tokenType))
         {
-            cout<<"PARSER: EATEN AND DIGESTED: "<<currentToken.Type<<endl;
-            currentToken = thislexer.getToken();
-            cout<<endl;
+            currentToken = thislexer->getToken();
             cout<<"PARSER: JUST EATEN TOKEN : "<<currentToken.Type<<endl;
         }
         else
         {
-            cout<<":Error:"<<endl;
+            cout<<":Mismatch Error- expected:"<<tokenType<<"<> actual: "<<currentToken.Type<<endl;
         }
     }
     
@@ -226,8 +284,7 @@ public:
     {
         if((astTreePointer->myNodeToken.Type == "UNARY +") || (astTreePointer->myNodeToken.Type == "UNARY -"))
         {
-            cout<<"TRAVERSE - Type: "<<astTreePointer->myNodeToken.Type<<endl;
-            cout<<"TRAVERSE - Value: "<<astTreePointer->myNodeToken.Value<<endl;
+            cout<<"TRAVERSE - Type: "<<astTreePointer->myNodeToken.Type<<" TRAVERSE - Value: "<<astTreePointer->myNodeToken.Value<<endl;
             traverse(astTreePointer->child);
         }
         else
@@ -247,6 +304,17 @@ public:
         }
     }
 
+    Node* variable()
+    {
+        Node* astNode;
+        astNode = new Node;
+        astNode->myNodeToken.Value = currentToken.Value;
+        astNode->myNodeToken.Type = currentToken.Type;
+        eat("VAR");
+
+        return astNode;
+    }
+    
     Node* factor( )
     {
         Node* astNode;
@@ -256,6 +324,7 @@ public:
         bool change = false;
 
         cout<<"PARSER: Factor Token Type: "<<currentToken.Type<<endl;
+        
         if( currentToken.Type == "ADD")
         {
             newNode = new unaryNode;
@@ -306,6 +375,13 @@ public:
             eat("LPARENTH");
             astNode = expression();
             eat("RPARENTH");
+            return astNode;
+        }
+        
+        else //if((currentToken.Type.substr(0,3) == "VAR"))
+        {
+            i++;
+            astNode = variable();
             return astNode;
         }
         
@@ -373,25 +449,22 @@ public:
         leftNode = term();
 
         cout<<"PARSER: Expression Token Type: "<<currentToken.Type<<endl;
-
+        
         while ((currentToken.Type == "ADD") || (currentToken.Type == "SUBTRACT"))
         {
             change = true;
             if(currentToken.Type == "ADD")
             {
-                //
                 cout<<"PARSER: token #:"<<i+1<<endl;
-                cout<<"PARSER: Token - Type: "<<currentToken.Type<<endl;
-                cout<<"PARSER: Token - Value: "<<currentToken.Value<<endl;
+                cout<<"PARSER: Token - Type: "<<currentToken.Type<<" PARSER: Token - Value: "<<currentToken.Value<<endl;
                 i++;
-                //
+
                 newNode = new Node;
                 newNode->left = leftNode;
                 newNode->myNodeToken.Type = "ADD";
                 eat("ADD");
                 newNode->right = term();
                 leftNode = newNode;
-
             }
             if(currentToken.Type == "SUBTRACT")
             {
@@ -412,7 +485,89 @@ public:
         
         return leftNode;
     }
+    
+    Node* assignmentStatement()
+    {
+        Node* newNode;
+        
+        newNode = new Node;
+        newNode->myNodeToken.Type = "ASSIGN";
+
+        newNode->left = variable();
+        eat("ASSIGN");
+        newNode->right = expression();
+        
+        return newNode;
+    }
+    
+    Node* statement()
+    {
+        Node* newNode;
+        
+        cout<<"Here in statement I want to know the current token type: "<<currentToken.Type;
+        if(currentToken.Type == "BEGIN")
+        {
+            cout<<"Tokens match: "<< currentToken.Type<<endl;
+            newNode = compoundStatement();
+        }
+        else if(currentToken.Type.substr(0,3) == "VAR")
+        {
+            newNode = assignmentStatement();
+            //newNode->myNodeToken.Type = "VAR";
+        }
+        else
+            newNode = NULL;
+        
+        return newNode;
+    }
+    
+    list<Node*>* statementList()
+    {
+        list<Node*>* newList;
+                
+        newList = new list<Node*>;
+        
+        newList->push_back(statement());
+        
+        while(currentToken.Type == "SEMI")
+        {
+            eat("SEMI");
+            newList->push_back(statement());
+        }
+        if((currentToken.Type.substr(0,3) == "VAR"))
+        {
+            //error();
+        }
+         
+        return newList;
+    }
+    
+    Node* compoundStatement()
+    {
+        Node* newNode;
+        
+        eat("BEGIN");
+        newNode = new Node;
+        newNode->myNodeToken.Type = "COMPOUND";
+        newNode->compoundStatements = statementList();
+        eat("END");
+        
+        return newNode;
+    }
+    
+    Node* program()
+    {
+        Node* newNode;
+        i=0;
+        cout<<"Starting program"<<endl;
+        newNode = compoundStatement();
+        eat("DOT");
+        
+        return newNode;
+    }
 };
+
+
 class Visitor
 {
 public:
@@ -420,10 +575,15 @@ public:
     int result;
     string rpn;
     string lisp;
+    SymbolTable* basicSymbolTable;
+    //
     
+    Visitor(SymbolTable* symbolTable)
+    {
+        basicSymbolTable = symbolTable;
+    }
     int visit(Node* asTree)
     {
-        
         if(asTree->myNodeToken.Type == "UNARY +")
         {
             result = visit(asTree->child);
@@ -451,6 +611,25 @@ public:
         if(asTree->myNodeToken.Type == "INTEGER")
         {
             return asTree->myNodeToken.Value;
+        }
+        if(asTree->myNodeToken.Type == "VAR")
+        {
+            return basicSymbolTable->find(asTree->myNodeToken.Type);
+        }
+        if(asTree->myNodeToken.Type == "NONE")
+        {
+            
+        }
+        if(asTree->myNodeToken.Type == "ASSIGN")
+        {
+            return basicSymbolTable->insert(asTree->myNodeToken.Type,"Global", "Variable", 0);
+        }
+        if(asTree->myNodeToken.Type == "COMPOUND")
+        {
+            for(list<Node*>::iterator iter = asTree->compoundStatements->begin(); iter!= asTree->compoundStatements->end(); ++iter)
+            {
+                visit(*iter);
+            }
         }
         return result;
     }
@@ -530,11 +709,11 @@ public:
     }
 };
 
-
+/************
 class Interpreter
 {
 public:
-    /*"""term : factor ((MUL | DIV) factor)*"""*/
+    //"""term : factor ((MUL | DIV) factor)
     Lexer thislexer;
     Token currentToken;
     string cursorTokenCharType;
@@ -632,17 +811,43 @@ public:
         return result;
     }
 };
+*********************/
+
+string stream_as_string( istream& stm )
+{
+    string str ;
+    char c ;
+    while( stm.get(c) ) str += c ;
+    return str ;
+}
+
 
 int main()
 {
     string prompt = "Enter an expression to be evalauted:\n";
-    string answer;
-    Lexer thisLexer;
-    Lexer thisLexer2;
+    ifstream file("sample.txt");
     
-    Interpreter interpreter;
-    Parser parser;
-    Visitor theVisitor;
+    Lexer thisLexer3(&mySymbolTable);
+    thisLexer3.getInput(stream_as_string(file));
+      //Variable used to store the text from the user
+    //string answer;
+    
+    //Lexer object
+    //Lexer thisLexer;
+    
+    //Lexer object
+    //Lexer thisLexer2;
+    
+    //Interpreter object
+    //Interpreter interpreter;
+    
+    //Parser Object
+    Parser parser(&thisLexer3);
+    
+    //Visitor object
+    //Visitor theVisitor(&mySymbolTable);
+    
+    //Node pointer (root)
     Node* testNode;
     /*
     Node* node1 = new Node;
@@ -652,12 +857,12 @@ int main()
     Node* node5 = new Node;
     */
     
-    cout<<prompt;
+    //cout<<prompt;
     
-    getline(cin,answer);
+    //getline(cin,answer);
     
     //thisLexer.getInput(answer);
-    thisLexer2.getInput(answer);
+    //thisLexer2.getInput(answer);
     
     //interpreter.getLexer(thisLexer);
     
@@ -665,27 +870,27 @@ int main()
     
     //cout<<interpreter.expression()<<endl;
 
-    parser.getLexer(thisLexer2);
+    //parser.getLexer(thisLexer3);
     
     parser.startLexer();
     
-    testNode =  parser.expression();
+    testNode =  parser.program();
     
     parser.traverse(testNode);
     
     
     //parser.traverse(testNode);
 
-    cout<<"Here is the result: "<<theVisitor.visit(testNode)<<endl;
+    //cout<<"Here is the result: "<<theVisitor.visit(testNode)<<endl;
     
-    theVisitor.rpnTranslator(testNode);
+    //theVisitor.rpnTranslator(testNode);
     
-    theVisitor.lispTranslator(testNode);
+    //theVisitor.lispTranslator(testNode);
 
     
-    theVisitor.printrpn();
+    //theVisitor.printrpn();
     
-    theVisitor.printlisp();
+    //theVisitor.printlisp();
     //cout<<endl;
     //theVisitor.lispTranslator(testNode);
 
