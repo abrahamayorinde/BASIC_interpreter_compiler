@@ -37,7 +37,22 @@ Removed some debug code in from the 'getToken' function of the 'Lexer' class.
 #Commit 4
 Fixed the issue with the function 'factor' in Parser that returned the wrong node and as a result some branches of the tree were orphaned.
 
+#Commit 5
+ Add several includes <fstream>, <iostream>, <sstream>, <list>
  
+ Seperate Node and Symbol Table into their own files.  "Node.h", "symbol_table.h"
+ 
+ Add symbol table (global scope)
+ 
+ Lexer accesses global symbol table via symbol table pointer
+ 
+ Modify the alphanumeric variable detection in the 'getToken' function 
+
+ Modiify getToken to recognize the following list of characters {'.', ';', ';=', '++', '==', '<=', '>=', '!='}
+ 
+ Lexer member object in Parser object changed to a pointer to a Lexer object (Lexer*).* 
+ 
+ Add updated functionality to the Parser to be able to recognize and parse tokens and nodes, respectively, for variables, assignment statements.
 
 
 
