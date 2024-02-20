@@ -5,42 +5,39 @@
 //  Created by Abraham Ayorinde on 9/9/22.
 //
 
-#ifndef symbol_node_h
-#define symbol_node_h
+#ifndef activation_node_h
+#define activation_node_h
 #include <list>
-#include "Node.h"
-
 #include <string>
+
 using namespace std;
 
-struct SymbolNode{
+
+struct ActivationNode{
 public:
     string identifier;
     string type;
     string classification;
-    int depth;
     int lineNo;
     list <string>arguments;
-    Node* location;
-    SymbolNode* next;
+    ActivationNode* next;
 
-    SymbolNode()
+    ActivationNode()
     {
         this->identifier = "";
         this->type = "";
         this->lineNo = 0;
+        this->classification = "";
         next = NULL;
     }
-    SymbolNode(string key, string type, int depth, string typeclass, int lineNo, Node* location)
+    ActivationNode(string key, string type, string typeclass, int lineNo)
     {
         this->identifier = key;
         this->type = type;
-        this->depth = depth;
         this->lineNo = lineNo;
         this->classification = typeclass;
-        this->location = location;
         next = NULL;
     }
 };
 
-#endif /* symbol_node_h */
+#endif /* activation_node_h */

@@ -5,25 +5,25 @@
 //  Created by Abraham Ayorinde on 9/7/22.
 //
 
-#ifndef symbol_table_h
-#define symbol_table_h
-#include "symbol_node.h"
+#ifndef activation_table_h
+#define activation_table_h
+#include "activation_node.h"
 #include <list>
-
 #define MAX 100
-
 using namespace std;
+  
+//const int MAX = 100;
 
-class SymbolTable 
+class ActivationTable 
 {
-    SymbolNode* head[MAX];
+    ActivationNode* head[MAX];
 public:
     string tablename;
     int scopelevel;
-    SymbolTable* parent;
-    list <SymbolTable*> childTables;
-
-    SymbolTable()
+    ActivationTable* parent;
+    list <ActivationTable*> childTables;
+    
+    ActivationTable()
     {
         for (int i = 0; i < MAX; i++)
         {
@@ -33,7 +33,7 @@ public:
         scopelevel = 0;
         parent = NULL;
     }
-    SymbolTable(string name, int scopelevl, SymbolTable* progenitor)
+    ActivationTable(string name, int scopelevl, ActivationTable* progenitor)
     {
         for (int i = 0; i < MAX; i++)
         {
@@ -45,16 +45,14 @@ public:
     }
 
     int hashf(string id); // hash function
-    bool insert(string id, string Type, int depth, string typeclass, int lineno, Node* treeLocation);
+    bool insert(string id, string Type, string typeclass, int lineno);
     bool find(string id);
-    bool findfromtop(string id, SymbolTable* referenceTable);
     bool deleteRecord(string id);
     bool modify(string id, string Type, int lineno);
     int getscopelevel();
     void setscopelevel(int newscopelevel);
-    SymbolNode* getNode(string id);
-    vector <string> getparametersoftable(string table,int argCount,SymbolTable* referenceTable);
+    ActivationNode* getNode(string id);
     void print();
 };
 
-#endif /* symbol_table_h */
+#endif /* activation_table_h */

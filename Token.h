@@ -7,28 +7,18 @@
 
 #ifndef Token_h
 #define Token_h
+#include <iostream>
+#include <string>
 using namespace std;
 
 class Token
 {
 public:
+    string name;
     string Type;
-    int Value;
-    
-    /*
-    Token (string type)
-    {
-        Type = type;
-        Value = 0;
-    }
-    
-    Token(string type, int value)
-    {
-        Type = type;
-        Value = value;
-    }
-    */
-    
+    string Value;
+    int line;
+    int col;
 };
 
 #endif /* Token_h */
